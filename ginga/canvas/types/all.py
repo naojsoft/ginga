@@ -3,6 +3,7 @@
 #
 
 from .basic import *  # noqa
+from .vbasic import *  # noqa
 from .image import *  # noqa
 from .layer import *  # noqa
 from .utils import *  # noqa

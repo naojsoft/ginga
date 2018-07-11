@@ -6,6 +6,7 @@
 
 import math
 from itertools import chain
+import numpy as np
 
 import aggdraw as agg
 
@@ -121,9 +122,20 @@ class RenderContext(object):
             (cx - cradius, cy - cradius, cx + cradius, cy + cradius),
             self.pen, self.brush)
 
+    def draw_circles(self, cx, cy, cradius):
+        res = (cx - cradius, cy - cradius, cx + cradius, cy + cradius)
+        if np.isscalar(cx):
+            args = [res]
+        else:
+            arr = np.transpose(res)
+            args = [tuple(arr[i]) for i in range(len(arr))]
+
+        self.cr.canvas.ellipses(args, self.pen, self.brush)
+
     def draw_bezier_curve(self, cp):
         # there is a bug in path handling of some versions of aggdraw--
         # aggdraw here is ok:
+        #
         path = agg.Path()
         path.moveto(cp[0][0], cp[0][1])
         path.curveto(cp[1][0], cp[1][1], cp[2][0], cp[2][1], cp[3][0], cp[3][1])
