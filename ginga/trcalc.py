@@ -338,7 +338,7 @@ def get_scaled_cutout_wdht_view(shp, x1, y1, x2, y2, new_wd, new_ht):
         if yi_max > max_y:
             raise ValueError("Y index (%d) exceeds shape bounds (%d)" % (yi_max, max_y))
 
-    view = np.ix_(yi, xi)
+    view = (yi, xi)
 
     # Calculate actual scale used (vs. desired)
     scale_x = float(wd) / old_wd
@@ -407,7 +407,7 @@ def get_scaled_cutout_wdhtdp_view(shp, p1, p2, new_dims):
         if zi_max > max_z:
             raise ValueError("Z index (%d) exceeds shape bounds (%d)" % (zi_max, max_z))
 
-    view = np.ix_(yi, xi, zi)
+    view = (yi, xi, zi)
 
     # Calculate actual scale used (vs. desired)
     scale_x = float(wd) / old_wd
@@ -1131,6 +1131,9 @@ def fancy_index(d_obj, view):
     arr : ndarray
         The result of the fancy index as a numpy array
     """
+    if not isinstance(view, tuple):
+        view = tuple(view)
+
     if not isinstance(view[0], slice):
         # <-- indicates fancy indexing being used instead of slices
 
