@@ -17,13 +17,13 @@ from ginga.web.pgw import PgHelp
 has_webkit = False
 
 __all__ = ['WidgetError', 'WidgetBase', 'TextEntry', 'TextEntrySet',
-           'TextArea', 'Label', 'Button', 'ComboBox',
+           'TextArea', 'Dial', 'Label', 'Button', 'ComboBox',
            'SpinBox', 'Slider', 'ScrollBar', 'CheckBox', 'ToggleButton',
            'RadioButton', 'Image', 'ProgressBar', 'StatusBar', 'TreeView',
            'Canvas', 'ContainerBase', 'Box', 'HBox', 'VBox', 'Frame',
            'Expander', 'TabWidget', 'StackWidget', 'MDIWidget', 'ScrollArea',
            'Splitter', 'GridBox', 'ToolbarAction', 'Toolbar', 'MenuAction',
-           'Menu', 'Menubar', 'TopLevel', 'Application', 'Dialog',
+           'Menu', 'Menubar', 'Page', 'TopLevel', 'Application', 'Dialog',
            'name_mangle', 'make_widget', 'hadjust', 'build_info', 'wrap',
            'has_webkit']
 
@@ -689,6 +689,78 @@ class Slider(WidgetBase):
         return self.html_template % d  # noqa
 
 
+class Dial(WidgetBase):
+
+    html_template = '''
+    <div id='%(id)s' class="%(classes)s" style="%(styles)s">
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#%(id)s').jqxKnob({ value: %(value)d,
+                                   min: %(min_val)d, max: %(max_val)d,
+                                   step: %(inc_val)d,
+                                   width: %(width)s, height: %(height)s
+                                   });
+            $('#%(id)s').on('valueChanged', function (event) {
+                ginga_app.widget_handler('activate', '%(id)s',
+                                         parseInt(event.currentValue));
+            });
+        });
+    </script>
+    '''
+
+    def __init__(self, dtype=float, wrap=False, track=False):
+        super(Dial, self).__init__()
+
+        self.widget = None
+        self.value = 0
+        # this controls whether the callbacks are made *as the user
+        # moves the dial* or afterwards
+        self.tracking = track
+        # this controls whether we can wrap around or not
+        self.wrap = wrap
+
+        self.dtype = dtype
+        self.min_val = dtype(0)
+        self.max_val = dtype(100)
+        self.inc_val = dtype(1)
+
+        self.enable_callback('value-changed')
+
+    def _cb_redirect(self, val):
+        self.value = val
+        self.make_callback('value-changed', self.value)
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self, val):
+        if val < self.min_val or val > self.max_val:
+            raise ValueError("Value '{}' is out of range".format(val))
+        self.value = val
+
+    def set_tracking(self, tf):
+        self.track = tf
+
+    def set_limits(self, minval, maxval, incr_value=1):
+        self.min_val = minval
+        self.max_val = maxval
+        self.inc_val = incr_value
+
+    def render(self):
+        d = dict(id=self.id, disabled='',
+                 classes=self.get_css_classes(fmt='str'),
+                 styles=self.get_css_styles(fmt='str'),
+                 min_val=self.min_val, max_val=self.max_val,
+                 inc_val=self.inc_val, value=self.value,
+                 width="'100%'", height="'100%'")
+        if not self.enabled:
+            d['disabled'] = 'disabled'
+
+        self._rendered = True
+        return self.html_template % d  # noqa
+
+
 class ScrollBar(WidgetBase):
 
     html_template = '''
@@ -917,6 +989,8 @@ class Image(WidgetBase):
             app.do_operation('update_imgsrc', id=self.id, value=self.img_src)
 
     def load_file(self, img_path, format=None):
+        if format is None:
+            format = 'png'
         img = PgHelp.get_native_image(img_path, format=format)
         self._set_image(img)
 
@@ -2202,7 +2276,7 @@ class Menubar(ContainerBase):
         return self.html_template % d
 
 
-class TopLevel(ContainerBase):
+class Page(ContainerBase):
 
     html_template = '''
 <!doctype html>
@@ -2242,7 +2316,7 @@ class TopLevel(ContainerBase):
 '''
 
     def __init__(self, title=""):
-        super(TopLevel, self).__init__()
+        super(Page, self).__init__()
 
         self.title = title
         self.widget = None
@@ -2342,6 +2416,181 @@ class TopLevel(ContainerBase):
         return self.html_template % d  # noqa
 
 
+class TopLevel(ContainerBase):
+
+    html_template = """
+    <div id='%(id)s' class="%(classes)s" style="%(styles)s">
+        %(content)s
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#%(id)s').dialog({
+                autoOpen: true, modal: false,
+                autoResize: true,
+                title: "%(title)s",
+                closeOnEscape: false,
+                position: { x: 50, y: 50},
+                draggable: true, resizeable: true,
+                minWidth: 'auto', minHeight: 'auto',
+                width: 'auto', height: 'auto',
+                maxWidth: '100%%', maxHeight: '100%%',
+            });
+            // otherwise we get scrollbars in the dialog
+            $('#%(id)s').css('overflow', 'visible');
+
+            $('#%(id)s').on('beforeClose', function (event) {
+                ginga_app.widget_handler('dialog-close', '%(id)s', true);
+            });
+
+            var resize_timer;
+            $('#%(id)s').on("dialogresize", function (event, ui) {
+                event.preventDefault()
+                clearTimeout(resize_timer);
+                resize_timer = setTimeout(function () {
+                var payload = { width: ui.size.width,
+                                height: ui.size.height,
+                                x: ui.position.left,
+                                y: ui.position.top }
+                ginga_app.resize_window();
+                ginga_app.widget_handler('dialog-resize', '%(id)s', payload);
+                }, 250);
+            });
+
+            // $('#%(id)s').on("dialogfocus", function (event, ui) {
+            //     ginga_app.widget_handler('dialog-focus', '%(id)s', true);
+            // });
+
+            $('#%(id)s').on("dialogopen", function (event, ui) {
+                ginga_app.resize_window();
+                ginga_app.widget_handler('dialog-open', '%(id)s', true);
+            });
+
+            // see python method show() in this widget
+            ginga_app.add_widget_custom_method('%(id)s', 'show_dialog',
+                function (elt, msg) {
+                    $(elt).dialog('open');
+            });
+
+            // see python method hide() in this widget
+            ginga_app.add_widget_custom_method('%(id)s', 'hide_dialog',
+                function (elt, msg) {
+                    $(elt).dialog('close');
+            });
+
+            // see python method raise_() in this widget
+            ginga_app.add_widget_custom_method('%(id)s', 'raise_dialog',
+                function (elt, msg) {
+                    $(elt).dialog('moveToTop');
+            });
+
+        });
+    </script>
+    """
+
+    def __init__(self, title="", parent=None):
+
+        super(TopLevel, self).__init__()
+
+        ## if parent is None:
+        ##     raise ValueError("Top level 'parent' parameter required")
+
+        self.title = title
+        self.parent = parent
+
+        for name in ('open', 'close', 'resize'):
+            self.enable_callback(name)
+
+        self.set_margins(0, 0, 0, 0)
+        #self.add_css_classes([])
+
+        # NOTE: either use this or explicitly call add_dialog() on
+        # TopLevel widget!
+        ## if parent is not None:
+        ##     parent.add_dialog(self)
+
+    def _cb_redirect(self, event):
+        if event.type == 'dialog-resize':
+            wd, ht = int(event.value['width']), int(event.value['height'])
+            self.make_callback('resize', (wd, ht))
+
+        elif event.type == 'dialog-open':
+            # TODO: don't allow dialog to be closed
+            self.make_callback('open')
+
+        elif event.type == 'dialog-close':
+            # TODO: don't allow dialog to be closed
+            self.make_callback('close')
+
+    def set_widget(self, child):
+        self.remove_all()
+        self.add_ref(child)
+
+    def show(self):
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation('show_dialog', id=self.id)
+
+    def hide(self):
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation('hide_dialog', id=self.id)
+
+    def raise_(self):
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation('raise_dialog', id=self.id)
+
+    def lower(self):
+        pass
+
+    def focus(self):
+        pass
+
+    def move(self, x, y):
+        pass
+
+    def maximize(self):
+        pass
+
+    def unmaximize(self):
+        pass
+
+    def fullscreen(self):
+        pass
+
+    def unfullscreen(self):
+        pass
+
+    def iconify(self):
+        pass
+
+    def uniconify(self):
+        pass
+
+    def set_title(self, title):
+        self.title = title
+
+    def close(self):
+        self.make_callback('close')
+
+    def render_body(self):
+        if len(self.children) == 0:
+            return ""
+
+        return self.children[0].render()
+
+    def render(self):
+        wd, ht = self.get_size()
+        d = dict(id=self.id, title=self.title,
+                 width=wd, height=ht,
+                 content=self.render_body(),
+                 classes=self.get_css_classes(fmt='str'),
+                 styles=self.get_css_styles(fmt='str'))
+
+        self._rendered = True
+        return self.html_template % d
+
+
 class Application(Callback.Callbacks):
 
     script_decls = {
@@ -2367,6 +2616,7 @@ class Application(Callback.Callbacks):
     <script type="text/javascript" src="/js/jqwidgets/jqxtabs.js"></script>
     <script type="text/javascript" src="/js/jqwidgets/jqxpanel.js"></script>
     <script type="text/javascript" src="/js/jqwidgets/jqxexpander.js"></script>
+    <script type="text/javascript" src="/js/jqwidgets/jqxknob.js"></script>
     <script type="text/javascript" src="/js/jqwidgets/jqxprogressbar.js"></script>
     <script type="text/javascript" src="/js/jqwidgets/jqxmenu.js"></script>
     <script type="text/javascript" src="/js/jqwidgets/jqxtoolbar.js"></script>
@@ -2393,7 +2643,7 @@ class Application(Callback.Callbacks):
         # list of web socket handlers connected to this application
         self.ws_handlers = []
         # default sections from script imports to insert in web pages
-        # see TopLevel widget, above
+        # see Page widget, above
         self.script_imports = ['hammer', 'jquery']
 
         _app = self
@@ -2447,7 +2697,7 @@ class Application(Callback.Callbacks):
         return list(self.window_dict.keys())
 
     def make_window(self, title=None, wid=None):
-        w = TopLevel(title=title)
+        w = Page(title=title)
         self.add_window(w, wid=wid)
         return w
 
@@ -2688,7 +2938,7 @@ class Dialog(ContainerBase):
         #self.add_css_classes([])
 
         # NOTE: either use this or explicitly call add_dialog() on
-        # TopLevel widget!
+        # Page widget!
         ## if parent is not None:
         ##     parent.add_dialog(self)
 
@@ -2810,6 +3060,8 @@ def make_widget(title, wtype):
         w = ProgressBar()
     elif wtype == 'menubar':
         w = Menubar()
+    elif wtype == 'dial':
+        w = Dial()
     else:
         raise ValueError("Bad wtype=%s" % wtype)
     return w

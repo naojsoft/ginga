@@ -2456,6 +2456,8 @@ def make_widget(title, wtype):
         w = ProgressBar()
     elif wtype == 'menubar':
         w = Menubar()
+    elif wtype == 'dial':
+        w = Dial()
     else:
         raise ValueError("Bad wtype=%s" % wtype)
     return w
