@@ -351,6 +351,12 @@ class Button(WidgetBase):
 
         self.enable_callback('activated')
 
+    def set_text(self, text):
+        self.widget.setText(text)
+
+    def get_text(self):
+        return self.widget.text()
+
     def _cb_redirect(self, *args):
         self.make_callback('activated')
 
@@ -575,8 +581,15 @@ class ScrollBar(WidgetBase):
 
         self.enable_callback('activated')
 
+    def set_value(self, value):
+        int_val = int(round(value * 100.0))
+        self.widget.setValue(int_val)
+
+    def get_value(self):
+        return self.widget.value() / 100.0
+
     def _cb_redirect(self):
-        val = self.widget.value()
+        val = self.widget.value() / 100.0
         self.make_callback('activated', val)
 
 

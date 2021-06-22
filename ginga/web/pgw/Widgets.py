@@ -463,6 +463,15 @@ class Button(WidgetBase):
 
         self.enable_callback('activated')
 
+    def set_text(self, text):
+        self.text = text
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation('update_value', id=self.id, value=self.text)
+
+    def get_text(self):
+        return self.text
+
     def _cb_redirect(self, event):
         self.make_callback('activated')
 
@@ -776,6 +785,11 @@ class ScrollBar(WidgetBase):
                 ginga_app.widget_handler('activate', '%(id)s',
                                          parseInt(event.currentValue));
             });
+            // see python method set_value() in this widget
+            ginga_app.add_widget_custom_method('%(id)s', 'set_scrollval',
+                function (elt, msg) {
+                    $(elt).jqxScrollBar({ value: msg.value });
+            });
         });
     </script>
     '''
@@ -790,19 +804,28 @@ class ScrollBar(WidgetBase):
 
         self.enable_callback('activated')
 
+    def set_value(self, value):
+        self.value = int(round(value * 100.0))
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation('set_scrollval', id=self.id, value=self.value)
+
+    def get_value(self):
+        return self.widget.value() / 100.0
+
     def _cb_redirect(self, event):
         self.value = event.value
-        self.make_callback('activated', self.value)
+        self.make_callback('activated', self.value / 100.0)
 
     def render(self):
         d = dict(id=self.id, value=self.value, disabled='',
                  classes=self.get_css_classes(fmt='str'),
                  styles=self.get_css_styles(fmt='str'))
         if self.orientation == 'vertical':
-            d['vert'] = 'false'
+            d['vert'] = 'true'
             d['width'], d['height'] = self.thickness, "'100%'"
         else:
-            d['vert'] = 'true'
+            d['vert'] = 'false'
             d['width'], d['height'] = "'100%'", self.thickness
 
         self._rendered = True
@@ -1013,12 +1036,13 @@ class ProgressBar(WidgetBase):
     <script type="text/javascript">
         $(document).ready(function () {
             $('#%(id)s').jqxProgressBar({ value: %(value)d, disabled: %(disabled)s,
+                                          showText: true,
                                           width: %(width)s, height: %(height)s,
                                           orientation: '%(orient)s' });
             // see python method set_index() in this widget
             ginga_app.add_widget_custom_method('%(id)s', 'set_progress',
                 function (elt, msg) {
-                    $(elt).jqxProgressBar('val', msg.value);
+                    $(elt).jqxProgressBar('value', msg.value);
             });
         });
     </script>

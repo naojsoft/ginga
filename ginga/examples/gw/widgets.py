@@ -36,6 +36,12 @@ def popup_dialog(parent):
     dia.show()
 
 
+def button_test(w):
+    if w.get_text().lower() == 'foo':
+        w.set_text('bar')
+    else:
+        w.set_text('foo')
+
 def show_example(cbox, top, logger):
     from ginga.gw import Widgets
     wname = cbox.get_text()
@@ -50,7 +56,8 @@ def show_example(cbox, top, logger):
     elif wname == 'button':
         w = Widgets.Button("Press me")
         w.add_callback('activated', lambda w: logger.info("button was clicked"))
-        w.add_callback('activated', lambda w: popup_dialog(top))
+        w.add_callback('activated', button_test)
+        #w.add_callback('activated', lambda w: popup_dialog(top))
         vbox.add_widget(w, stretch=1)
 
     elif wname == 'textentry':
@@ -131,14 +138,25 @@ def show_example(cbox, top, logger):
         vbox.add_widget(w)
 
     elif wname == 'scrollbar':
+        _vbox = Widgets.VBox()
         w = Widgets.ScrollBar(orientation='horizontal')
-        w.add_callback('activated', lambda w, val: logger.info("value is %d" % val))
-        vbox.add_widget(w)
+        _vbox.add_widget(w, stretch=0)
+        _ent = Widgets.TextEntrySet()
+        _vbox.add_widget(_ent, stretch=0)
+        _ent.add_callback('activated', lambda r: w.set_value(float(r.get_text())))
+        w.set_value(0.40)
+        w.add_callback('activated', lambda w, val: logger.info("value is %.2f" % val))
+        vbox.add_widget(_vbox)
 
     elif wname == 'progressbar':
+        _vbox = Widgets.VBox()
         w = Widgets.ProgressBar()
+        _vbox.add_widget(w, stretch=0)
+        _ent = Widgets.TextEntrySet()
+        _vbox.add_widget(_ent, stretch=0)
+        _ent.add_callback('activated', lambda r: w.set_value(float(r.get_text())))
         w.set_value(0.6)
-        vbox.add_widget(w)
+        vbox.add_widget(_vbox)
 
     elif wname == 'statusbar':
         w = Widgets.StatusBar()
@@ -326,6 +344,7 @@ def main(options, args):
 
     from ginga.gw import Widgets
 
+    #app = Widgets.Application(host='', logger=logger)
     app = Widgets.Application(logger=logger)
     app.add_callback('shutdown', quit)
 
