@@ -10,6 +10,7 @@ Examples:
   $ python widgets.py -t gtk3
   $ python widgets.py -t pg
 """
+from argparse import RawDescriptionHelpFormatter
 import sys
 import os
 
@@ -50,9 +51,30 @@ def show_example(cbox, top, logger):
     vbox.set_spacing(1)
 
     if wname == 'label':
-        w = Widgets.Label("Hello World label")
-        vbox.add_widget(w, stretch=1)
-
+        _vbox = Widgets.VBox()
+        label = Widgets.Label("Hello World label")
+        label.set_color('white', 'blue')
+        label.set_font("Times New Roman")
+        _vbox.add_widget(label, stretch=1)
+        # Allow user to select different font
+        fontbox = Widgets.ComboBox()
+        _vbox.add_widget(fontbox, stretch=0)
+        for name in ["Times New Roman", "Arial", "Courier"]:
+            fontbox.append_text(name)
+        fontbox.add_callback('activated', lambda r, val: label.set_font(r.get_text()))
+        fontbox.add_callback('activated',
+                       lambda w, val: logger.info("chose '{}'".format(w.get_text())))
+        # ...FOR HALIGN...
+        alignbox = Widgets.ComboBox()
+        _vbox.add_widget(alignbox, stretch=0)
+        for name in ["Left", "Center", "Right"]:
+            alignbox.append_text(name)
+        alignbox.add_callback('activated', lambda r, val: label.set_halign(r.get_text()))
+        alignbox.add_callback('activated',
+                       lambda w, val: logger.info("chose '{}'".format(w.get_text())))
+        label.set_halign('Left')
+        vbox.add_widget(_vbox)
+        
     elif wname == 'button':
         w = Widgets.Button("Press me")
         w.add_callback('activated', lambda w: logger.info("button was clicked"))
@@ -61,26 +83,76 @@ def show_example(cbox, top, logger):
         vbox.add_widget(w, stretch=1)
 
     elif wname == 'textentry':
-        w = Widgets.TextEntry()
-        w.set_text("Hello, World!")
+        _vbox = Widgets.VBox()
+        # Read only text entry
+        w2 = Widgets.TextEntry("Read only", editable=False)
+        _vbox.add_widget(w2, stretch=1)
+        # Regular text entry
+        w = Widgets.TextEntry("Hello, World!")
+        w.set_font("Times New Roman")
         w.add_callback('activated',
                        lambda w: logger.info("said '{}'".format(w.get_text())))
-        vbox.add_widget(w, stretch=1)
+        w.add_callback('activated', lambda r: w.set_text(r.get_text()))
+        _vbox.add_widget(w, stretch=1)
+        # Allow user to select different font
+        fontbox = Widgets.ComboBox()
+        _vbox.add_widget(fontbox, stretch=0)
+        for name in ["Times New Roman", "Helvetica", "Courier"]:
+            fontbox.append_text(name)
+        fontbox.add_callback('activated', lambda r, val: w.set_font(r.get_text()))
+        # Set length
+        enter_limit = Widgets.TextEntrySet()
+        enter_limit.add_callback('activated', lambda r: w.set_length(int(enter_limit.get_text())))
+        _vbox.add_widget(enter_limit, stretch=0)
+
+        vbox.add_widget(_vbox, stretch=1)
 
     elif wname == 'textentryset':
+        _vbox = Widgets.VBox()
+        # Read only text entry
+        w2 = Widgets.TextEntrySet("Read only", editable=False)
+        _vbox.add_widget(w2, stretch=1)
+        # Editable text entry
         w = Widgets.TextEntrySet()
-        w.set_text("Hello, World!")
+        w.set_text("This text entry fits 35 characters!")
+        w.set_length(35)
+        w.set_font("Georgia")
         w.add_callback('activated',
                        lambda w: logger.info("said '{}'".format(w.get_text())))
-        vbox.add_widget(w, stretch=1)
+        _vbox.add_widget(w, stretch=1)
+        vbox.add_widget(_vbox, stretch=1)
 
     elif wname == 'textarea':
+        _vbox = Widgets.VBox()
+        # Read only text area
+        w2 = Widgets.TextArea(editable=False)
+        w2.set_text("READ ONLY")
+        _vbox.add_widget(w2, stretch=1)
+        # Editable text area
         w = Widgets.TextArea(editable=True)
         w.set_text("Hello, World!")
-        vbox.add_widget(w, stretch=1)
+        w.set_wrap(False)
+        _vbox.add_widget(w, stretch=1)
+        # Set wrap
+        b2 = Widgets.ToggleButton("Toggle wrap on/off")
+        b2.add_callback('activated', lambda r, val: w.set_wrap(b2.get_state()))
+        _vbox.add_widget(b2)
+        # Clear text
+        b = Widgets.Button("Clear")
+        b.add_callback('activated', lambda r: w.clear())
+        _vbox.add_widget(b)
+        # Select font
+        fontbox = Widgets.ComboBox()
+        for name in ["Times New Roman", "Helvetica", "Courier"]:
+            fontbox.append_text(name)
+        fontbox.add_callback('activated', lambda r, val: w.set_font(r.get_text()))
+        _vbox.add_widget(fontbox, stretch=0)
+
+        vbox.add_widget(_vbox)
 
     elif wname == 'checkbox':
         w = Widgets.CheckBox("Check me")
+        w.set_state(False)
         w.add_callback('activated',
                        lambda w, val: logger.info("value changed to '{}'".format(w.get_state())))
         vbox.add_widget(w, stretch=1)
@@ -90,7 +162,7 @@ def show_example(cbox, top, logger):
         w.set_limits(-20, 20, incr_value=1)
         w.add_callback('value-changed',
                        lambda w, val: logger.info("value changed to '{}'".format(w.get_value())))
-        vbox.add_widget(w, stretch=1)
+        vbox.add_widget(w)
 
     elif wname == 'togglebutton':
         w = Widgets.ToggleButton("Toggle me")
@@ -108,6 +180,7 @@ def show_example(cbox, top, logger):
                         lambda w, val: logger.info("chose option 2"))
         vbox.add_widget(w2)
         w3 = Widgets.RadioButton("Option 3", group=w)
+        w3.set_state(True)
         w3.add_callback('activated',
                         lambda w, val: logger.info("chose option 3"))
         vbox.add_widget(w3)
@@ -118,24 +191,74 @@ def show_example(cbox, top, logger):
             w.append_text(name)
         w.add_callback('activated',
                        lambda w, val: logger.info("chose '{}'".format(w.get_text())))
+        # Test clear method
+        clearbutton = Widgets.Button("Clear choices")
+        clearbutton.add_callback('activated', lambda r: w.clear())
         vbox.add_widget(w)
+        vbox.add_widget(clearbutton)
+        # Test insert alpha
+        insert = Widgets.TextEntrySet("Add choice")
+        insert.add_callback('activated', lambda r: w.insert_alpha(r.get_text()))
+        vbox.add_widget(insert)
+        # Test delete alpha
+        delete = Widgets.TextEntrySet("Delete choice")
+        delete.add_callback('activated', lambda r: w.delete_alpha(r.get_text()))
+        vbox.add_widget(delete)
 
     elif wname == 'spinbox':
-        w = Widgets.SpinBox(dtype=int)
-        w.set_limits(-10, 10, incr_value=1)
-        w.set_value(4)
+        _vbox = Widgets.VBox()
+        w = Widgets.SpinBox(dtype=float)
+        w.set_limits(-10, 10, incr_value=0.1)
+        w.set_value(5.5)
+        # Changing value dynamically
         w.add_callback('value-changed',
                        lambda w, val: logger.info("chose {}".format(val)))
-        vbox.add_widget(w)
+        _vbox.add_widget(w)
+        value_label = Widgets.Label("Value: {}".format(w.get_value()))
+        w.add_callback('value-changed', lambda r, val: value_label.set_text("Value: {}".format(val)))
+        _vbox.add_widget(value_label)
+        # Changing min and max dynamically
+        maxlabel = Widgets.Label("Set max")
+        changemax = Widgets.TextEntrySet()
+        minlabel = Widgets.Label("Set min")
+        changemin = Widgets.TextEntrySet()
+        changemax.add_callback('activated', lambda r: w.set_limits(float(changemin.get_text()), float(r.get_text())))
+        changemin.add_callback('activated', lambda r: w.set_limits(float(r.get_text()), float(changemax.get_text())))
+        _vbox.add_widget(maxlabel)
+        _vbox.add_widget(changemax, stretch=0)
+        _vbox.add_widget(minlabel)
+        _vbox.add_widget(changemin, stretch=0)
+        vbox.add_widget(_vbox)
 
     elif wname == 'slider':
+        _vbox = Widgets.VBox()
         w = Widgets.Slider(orientation='horizontal')
-        w.set_limits(-10, 10, incr_value=1)
+        w.set_limits(0, 5, incr_value=1)
         w.set_value(4)
         w.set_tracking(True)
         w.add_callback('value-changed',
                        lambda w, val: logger.info("chose {}".format(val)))
-        vbox.add_widget(w)
+        _vbox.add_widget(w)
+        # Display current value
+        value_label = Widgets.Label("Value: {}".format(w.get_value()))
+        w.add_callback('value-changed', lambda r, val: value_label.set_text("Value: {}".format(val)))
+        _vbox.add_widget(value_label)
+        # Toggle tracking on/off
+        # b = Widgets.Button("Tracking on/off")
+        # b.add_callback('activated', lambda r: w.set_tracking(not(w.track)))
+        # _vbox.add_widget(b)
+        # Change value
+        change_val = Widgets.TextEntrySet()
+        change_val.add_callback('activated', lambda r: w.set_value(int(r.get_text())))
+        _vbox.add_widget(change_val, stretch=0)
+        # Changing min and max dynamically
+        changemax = Widgets.TextEntrySet("{}".format("Change max"))
+        changemin = Widgets.TextEntrySet("{}".format("Change min"))
+        changemax.add_callback('activated', lambda r: w.set_limits(int(changemin.get_text()), int(r.get_text())))
+        changemin.add_callback('activated', lambda r: w.set_limits(int(r.get_text()), int(changemax.get_text())))
+        _vbox.add_widget(changemax, stretch=0)
+        _vbox.add_widget(changemin, stretch=0)
+        vbox.add_widget(_vbox)
 
     elif wname == 'scrollbar':
         _vbox = Widgets.VBox()
@@ -218,10 +341,25 @@ def show_example(cbox, top, logger):
         vbox.add_widget(w, stretch=1)
 
     elif wname == 'scrollarea':
+        b = Widgets.Button("Scroll to bottom")
+        b.add_callback('activated', lambda r: w.scroll_to_end())
+        vbox.add_widget(b, stretch=1)
+        _vbox = Widgets.VBox()
+        a = Widgets.Label("Hello!")
+        s = Widgets.Slider(orientation='horizontal')
+        s.set_limits(-10, 10, incr_value=1)
+        s.set_value(4)
+        s.set_tracking(True)
         w = Widgets.ScrollArea()
         img = Widgets.Image()
         img.load_file(os.path.join(icondir, 'ginga-512x512.png'))
-        w.set_widget(img)
+        _vbox.add_widget(img, stretch=1)
+        _vbox.add_widget(a, stretch=1)
+        _vbox.add_widget(s, stretch=1)
+        
+
+        w.set_widget(_vbox)
+        # vbox.add_widget(_vbox, stretch=1)
         vbox.add_widget(w, stretch=1)
 
     elif wname == 'tabwidget':

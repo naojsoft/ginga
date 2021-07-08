@@ -340,7 +340,10 @@ class Label(WidgetBase):
     def set_color(self, fg=None, bg=None):
         self.widget.setStyleSheet(
             "QLabel { background-color: %s; color: %s; }" % (bg, fg))
-
+    
+    def set_halign(self, align):
+        # To do later?
+        pass
 
 class Button(WidgetBase):
     def __init__(self, text=''):
