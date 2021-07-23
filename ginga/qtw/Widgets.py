@@ -342,7 +342,7 @@ class Label(WidgetBase):
             "QLabel { background-color: %s; color: %s; }" % (bg, fg))
     
     def set_halign(self, align):
-        # To do later?
+        # TODO: set horizontal alignment of text
         pass
 
 class Button(WidgetBase):
@@ -1595,6 +1595,18 @@ class GridBox(ContainerBase):
         w = child.get_widget()
         self.widget.layout().addWidget(w, row, col)
         self.make_callback('widget-added', child)
+
+    def insert_cell(self, row, col):
+        # TODO:
+        pass
+
+    def insert_row(self, index):
+        # TODO:
+        pass
+
+    def delete_row(self, index):
+        # TODO:
+        pass
 
 
 class ToolbarAction(WidgetBase):

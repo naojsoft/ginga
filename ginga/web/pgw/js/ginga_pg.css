@@ -77,12 +77,12 @@ canvas {
     margin: 3.5px;
 }
 
-/* ToggleButton CSS */
+/* ToggleButton CSS via https://www.w3schools.com/howto/howto_css_switch.asp */
 .switch {
     position: relative;
     display: inline-block;
-    width: 60px;
-    height: 34px;
+    width: 45px;
+    height: 24px;
 }
   
 .switch input { 
@@ -106,8 +106,8 @@ canvas {
 .slider:before {
     position: absolute;
     content: "";
-    height: 26px;
-    width: 26px;
+    height: 16px;
+    width: 16px;
     left: 4px;
     bottom: 4px;
     background-color: white;
@@ -124,18 +124,40 @@ input:focus + .slider {
 }
   
 input:checked + .slider:before {
-    -webkit-transform: translateX(26px);
-    -ms-transform: translateX(26px);
-    transform: translateX(26px);
+    -webkit-transform: translateX(21px);
+    -ms-transform: translateX(21px);
+    transform: translateX(21px);
 }
   
 /* Rounded sliders */
   .slider.round {
-    border-radius: 34px;
+    border-radius: 24px;
 }
   
 .slider.round:before {
     border-radius: 50%;
+}
+
+/* CSS for Frame Widget */
+.frame {
+    border: 1px solid gray;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.frame-widget {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    flex-grow: 1;
+    flex-shrink: 1;
+    padding-bottom: 5px;
+}
+
+.frame-text {
+    text-align: center;
+    margin-top: 0;
 }
 
 /*END*/
