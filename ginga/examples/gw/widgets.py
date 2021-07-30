@@ -10,7 +10,6 @@ Examples:
   $ python widgets.py -t gtk3
   $ python widgets.py -t pg
 """
-from argparse import RawDescriptionHelpFormatter
 import sys
 import os
 
@@ -43,6 +42,18 @@ def button_test(w):
     else:
         w.set_text('foo')
 
+
+def setting_limits(textentry, spinbox):
+    limits = textentry.get_text().split(",")
+    spinbox.set_limits(float(limits[0]), float(limits[1]), float(limits[2]))
+
+
+def grid_helper(textentry, gridbox):
+    from ginga.gw import Widgets
+    indices = textentry.get_text().split(",")
+    gridbox.add_widget(Widgets.Label("Added widget"), int(indices[0]), int(indices[1]))
+
+
 def show_example(cbox, top, logger):
     from ginga.gw import Widgets
     wname = cbox.get_text()
@@ -63,7 +74,7 @@ def show_example(cbox, top, logger):
             fontbox.append_text(name)
         fontbox.add_callback('activated', lambda r, val: label.set_font(r.get_text()))
         fontbox.add_callback('activated',
-                       lambda w, val: logger.info("chose '{}'".format(w.get_text())))
+                             lambda w, val: logger.info("chose '{}'".format(w.get_text())))
         # ...FOR HALIGN...
         alignbox = Widgets.ComboBox()
         _vbox.add_widget(alignbox, stretch=0)
@@ -71,10 +82,10 @@ def show_example(cbox, top, logger):
             alignbox.append_text(name)
         alignbox.add_callback('activated', lambda r, val: label.set_halign(r.get_text()))
         alignbox.add_callback('activated',
-                       lambda w, val: logger.info("chose '{}'".format(w.get_text())))
+                              lambda w, val: logger.info("chose '{}'".format(w.get_text())))
         label.set_halign('Left')
         vbox.add_widget(_vbox)
-        
+
     elif wname == 'button':
         w = Widgets.Button("Press me")
         w.add_callback('activated', lambda w: logger.info("button was clicked"))
@@ -157,7 +168,7 @@ def show_example(cbox, top, logger):
 
     elif wname == 'checkbox':
         w = Widgets.CheckBox("Check me")
-        w.set_state(False)
+        w.set_state(True)
         w.add_callback('activated',
                        lambda w, val: logger.info("value changed to '{}'".format(w.get_state())))
         vbox.add_widget(w, stretch=1)
@@ -171,6 +182,7 @@ def show_example(cbox, top, logger):
 
     elif wname == 'togglebutton':
         w = Widgets.ToggleButton("Toggle me")
+        w.set_state(True)
         w.add_callback('activated',
                        lambda w, val: logger.info("value changed to '{}'".format(w.get_state())))
         vbox.add_widget(w, stretch=1)
@@ -219,33 +231,24 @@ def show_example(cbox, top, logger):
         vbox.add_widget(clearbutton, stretch=0)
 
     elif wname == 'spinbox':
-        grid = Widgets.GridBox(rows=3, columns=2)
         w = Widgets.SpinBox(dtype=float)
         w.set_limits(-10, 10, incr_value=0.1)
         w.set_value(5.5)
         # Displaying changing value
         w.add_callback('value-changed',
                        lambda w, val: logger.info("chose {}".format(val)))
-        grid.add_widget(w, 0, 0)
+        vbox.add_widget(w)
         value_label = Widgets.Label("Value: {}".format(w.get_value()))
         w.add_callback('value-changed', lambda r, val: value_label.set_text("Value: {}".format(val)))
-        grid.add_widget(value_label, 1, 0)
+        vbox.add_widget(value_label, stretch=1)
         # Test set_limits dynamically
-        maxlabel = Widgets.Label("Set max: ")
-        changemax = Widgets.TextEntrySet()
-        minlabel = Widgets.Label("Set min: ")
-        changemin = Widgets.TextEntrySet()
-        maxbox = Widgets.HBox()
-        maxbox.add_widget(maxlabel)
-        maxbox.add_widget(changemax)
-        minbox = Widgets.HBox()
-        minbox.add_widget(minlabel)
-        minbox.add_widget(changemin)
-        changemax.add_callback('activated', lambda r: w.set_limits(float(changemin.get_text()), float(r.get_text())))
-        changemin.add_callback('activated', lambda r: w.set_limits(float(r.get_text()), float(changemax.get_text())))
-        grid.add_widget(maxbox, 2, 0)
-        grid.add_widget(minbox, 2, 1)
-        vbox.add_widget(grid)
+        limits_label = Widgets.Label("Set limits (min, max, incr): ")
+        change_limits = Widgets.TextEntrySet()
+        hbox = Widgets.HBox()
+        hbox.add_widget(limits_label, stretch=1)
+        hbox.add_widget(change_limits, stretch=1)
+        change_limits.add_callback('activated', lambda r: setting_limits(r, w))
+        vbox.add_widget(hbox, stretch=1)
 
     elif wname == 'slider':
         _vbox = Widgets.VBox()
@@ -265,16 +268,21 @@ def show_example(cbox, top, logger):
         b.add_callback('activated', lambda r: w.set_tracking(not(w.track)))
         _vbox.add_widget(b)
         # Test set_value dynamically
+        hbox = Widgets.HBox()
+        set_label = Widgets.Label("Set value: ")
         change_val = Widgets.TextEntrySet()
         change_val.add_callback('activated', lambda r: w.set_value(int(r.get_text())))
-        _vbox.add_widget(change_val, stretch=0)
+        hbox.add_widget(set_label)
+        hbox.add_widget(change_val, stretch=1)
+        _vbox.add_widget(hbox, stretch=1)
         # Test set_limits dynamically
-        changemax = Widgets.TextEntrySet("{}".format("Change max"))
-        changemin = Widgets.TextEntrySet("{}".format("Change min"))
-        changemax.add_callback('activated', lambda r: w.set_limits(int(changemin.get_text()), int(r.get_text())))
-        changemin.add_callback('activated', lambda r: w.set_limits(int(r.get_text()), int(changemax.get_text())))
-        _vbox.add_widget(changemax, stretch=0)
-        _vbox.add_widget(changemin, stretch=0)
+        hbox2 = Widgets.HBox()
+        limits_label = Widgets.Label("Set limits (min, max, incr): ")
+        change_limits = Widgets.TextEntrySet()
+        hbox2.add_widget(limits_label)
+        hbox2.add_widget(change_limits)
+        change_limits.add_callback('activated', lambda r: setting_limits(r, w))
+        _vbox.add_widget(hbox2, stretch=1)
         vbox.add_widget(_vbox)
 
     elif wname == 'scrollbar':
@@ -415,7 +423,6 @@ def show_example(cbox, top, logger):
         b.add_callback('activated', lambda r: w.scroll_to_end(vertical=False, horizontal=True))
         grid.add_widget(b, 0, 1)
         # Test scroll_to_pct
-        label = Widgets.Label("Scroll")
         vert_pct = Widgets.TextEntrySet()
         vert_pct.add_callback('activated', lambda r: w.scroll_to_pct(int(r.get_text())))
         grid.add_widget(vert_pct, 1, 0)
@@ -436,7 +443,6 @@ def show_example(cbox, top, logger):
         _vbox.add_widget(img, stretch=0)
         _vbox.add_widget(a, stretch=0)
         _vbox.add_widget(s, stretch=0)
-        
         w.set_widget(_vbox)
         vbox.add_widget(w, stretch=1)
 
@@ -455,8 +461,21 @@ def show_example(cbox, top, logger):
 
     elif wname == 'stackwidget':
         w = Widgets.StackWidget()
+        w.add_widget(Widgets.TextArea(editable=True))
         w.add_widget(Widgets.Label('Content of Stack 1'))
-        w.add_widget(Widgets.Label('Content of Stack 2'))
+        # Testing set_index
+        hbox = Widgets.HBox()
+        label = Widgets.Label("Set index to be visible: ")
+        set_index = Widgets.TextEntrySet()
+        set_index.add_callback('activated', lambda r: w.set_index(int(r.get_text())))
+        hbox.add_widget(label)
+        hbox.add_widget(set_index)
+        # Testing add_widget
+        button2 = Widgets.Button("Press to add another widget")
+        button2.add_callback('activated', lambda r: w.add_widget(Widgets.Label("Content of inserted widget")))
+
+        vbox.add_widget(hbox, stretch=0)
+        vbox.add_widget(button2, stretch=0)
         vbox.add_widget(w, stretch=1)
 
     elif wname == 'mdiwidget':
@@ -471,13 +490,11 @@ def show_example(cbox, top, logger):
         w.add_widget(Widgets.Label('Content of Grid Area 2'), 0, 1)
         w.add_widget(Widgets.Label('Content of Grid Area 3'), 1, 0)
         w.add_widget(Widgets.Label('Content of Grid Area 4'), 1, 1)
-        # Test set row and column spacing methods 
+        # Test set row and column spacing methods
         row_button = Widgets.Button("Press to change row spacing to 50px")
         row_button.add_callback('activated', lambda r: w.set_row_spacing(50))
-
         col_button = Widgets.Button("Press to change column spacing to 50px")
         col_button.add_callback('activated', lambda r: w.set_column_spacing(50))
-
         both_button = Widgets.Button("Press to change row and column spacing to 20px")
         both_button.add_callback('activated', lambda r: w.set_spacing(20))
         # Test insert_row
@@ -494,9 +511,16 @@ def show_example(cbox, top, logger):
         delete_row.add_callback('activated', lambda r: w.delete_row(int(r.get_text())))
         hbox2.add_widget(label)
         hbox2.add_widget(delete_row)
-
-        insert_cell = Widgets.Button("Press to insert a cell in last row")
-        insert_cell.add_callback('activated', lambda r: w.insert_cell(1, 0))
+        # Test append_row
+        append_button = Widgets.Button("Press to append a row")
+        append_button.add_callback('activated', lambda r: w.append_row())
+        # Test add_widget
+        hbox3 = Widgets.HBox()
+        label = Widgets.Label("Enter indices to add widget (row,column): ")
+        add_widget = Widgets.TextEntrySet()
+        add_widget.add_callback('activated', lambda r: grid_helper(r, w))
+        hbox3.add_widget(label)
+        hbox3.add_widget(add_widget)
 
         vbox.add_widget(w, stretch=1)
         vbox.add_widget(row_button, stretch=1)
@@ -504,7 +528,8 @@ def show_example(cbox, top, logger):
         vbox.add_widget(both_button, stretch=1)
         vbox.add_widget(hbox, stretch=1)
         vbox.add_widget(hbox2, stretch=1)
-        vbox.add_widget(insert_cell, stretch=1)
+        vbox.add_widget(hbox3, stretch=1)
+        vbox.add_widget(append_button, stretch=1)
 
     elif wname == 'menubar':
         w = Widgets.Menubar()

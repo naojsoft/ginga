@@ -152,12 +152,19 @@ input:checked + .slider:before {
     width: 100%;
     flex-grow: 1;
     flex-shrink: 1;
-    padding-bottom: 5px;
+    padding-bottom: 5%;
 }
 
 .frame-text {
     text-align: center;
     margin-top: 0;
+}
+
+/* StackWidget CSS */
+.stackbox {
+    display: grid;
+    justify-items: center;
+    align-items: center;
 }
 
 /*END*/

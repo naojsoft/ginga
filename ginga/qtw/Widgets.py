@@ -340,10 +340,11 @@ class Label(WidgetBase):
     def set_color(self, fg=None, bg=None):
         self.widget.setStyleSheet(
             "QLabel { background-color: %s; color: %s; }" % (bg, fg))
-    
+
     def set_halign(self, align):
         # TODO: set horizontal alignment of text
         pass
+
 
 class Button(WidgetBase):
     def __init__(self, text=''):
@@ -1597,16 +1598,16 @@ class GridBox(ContainerBase):
         self.make_callback('widget-added', child)
 
     def insert_cell(self, row, col):
-        # TODO:
-        pass
+        raise NotImplementedError("insert_cell needs to be implemented!")
 
     def insert_row(self, index):
-        # TODO:
-        pass
+        raise NotImplementedError("insert_row needs to be implemented!")
+
+    def append_row(self):
+        raise NotImplementedError("append_row needs to be implemented!")
 
     def delete_row(self, index):
-        # TODO:
-        pass
+        raise NotImplementedError("delete_row needs to be implemented!")
 
 
 class ToolbarAction(WidgetBase):

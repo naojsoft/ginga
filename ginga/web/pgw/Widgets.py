@@ -261,7 +261,7 @@ class TextEntrySet(WidgetBase):
     html_template = '''
         <span class="%(classes)s" style="%(styles)s">
         <input id=%(id)s type="text" size=%(size)d name="%(id)s" value="%(text)s"
-           class="%(classes)s" style="%(styles)s" %(readonly)s maxlength=%(size)d %(disabled)s 
+           class="%(classes)s" style="%(styles)s" %(readonly)s maxlength=%(size)d %(disabled)s
            onkeydown="if(event.key == 'Enter') document.getElementById('%(id)s-button').click()"/>
         <input type="button" %(disabled)s id="%(id)s-button"
             class="%(classes)s" style="%(styles)s"
@@ -307,7 +307,7 @@ class TextEntrySet(WidgetBase):
         if self._rendered:
             app = self.get_app()
             app.do_operation('update_ohtml', id=self.id, name=self.render())
-            
+
     def set_editable(self, tf):
         self.editable = tf
 
@@ -488,7 +488,7 @@ class Label(WidgetBase):
             app = self.get_app()
             app.do_operation('update_style', id=self.id, value=style)
 
-    # ...FOR HALIGN... 
+    # ...FOR HALIGN...
     def set_halign(self, align=None):
         if align is not None:
             self.halign = align
@@ -567,7 +567,7 @@ class ComboBox(WidgetBase):
                 }
                 ginga_app.widget_handler('activate', '%(id)s',
                    document.getElementById('%(id)s').value);
-            }); 
+            });
         });
     </script>
     '''
@@ -595,8 +595,8 @@ class ComboBox(WidgetBase):
             if index >= num_choices:
                 self.choices.append(text)
                 if self._rendered:
-                        app = self.get_app()
-                        app.do_operation('update_html', id=self.id, value=self.render())
+                    app = self.get_app()
+                    app.do_operation('update_html', id=self.id, value=self.render())
                 return
             item_text = self.choices[index]
             if item_text > text:
@@ -606,13 +606,13 @@ class ComboBox(WidgetBase):
                     app.do_operation('update_html', id=self.id, value=self.render())
                 return
             index += 1
-            
+
     def delete_alpha(self, text):
         if self.choices.count(text) != 0:
             self.choices.remove(text)
         if self._rendered:
-                    app = self.get_app()
-                    app.do_operation('update_html', id=self.id, value=self.render())
+            app = self.get_app()
+            app.do_operation('update_html', id=self.id, value=self.render())
 
     def get_alpha(self, idx):
         return self.choices[idx]
@@ -676,34 +676,38 @@ class SpinBox(WidgetBase):
         $(document).ready(function(){
             $('#%(id)s').spinner({ step: %(step)s, disabled: %(disabled)s,
                                      max: %(max)s, min: %(min)s,
-                                     numberFormat: "%(format)s", value: %(value)s
+                                     numberFormat: "%(format)s", culture: "fr"
             });
             // Set value of spinner box
             ginga_app.add_widget_custom_method('%(id)s', 'set_spinval',
                 function (elt, msg) {
                     $(elt).spinner( "value", msg.value );
             });
-            // Set max of spinner box
-            ginga_app.add_widget_custom_method('%(id)s', 'set_max',
+            // Set limits of spinner box
+            ginga_app.add_widget_custom_method('%(id)s', 'set_limits',
                 function (elt, msg) {
                     var current_val = $(elt).spinner( "value" );
-                    if (current_val > msg.value) {
-                        $(elt).spinner( "value", msg.value );
+                    // set max limit
+                    if (current_val > msg.value[1]) {
+                        $(elt).spinner( "value", msg.value[1] );
                     }
-                    $(elt).spinner({ max: msg.value });
-            });
-            // Set min of spinner box
-            ginga_app.add_widget_custom_method('%(id)s', 'set_min',
-                function (elt, msg) {
-                    var current_val = $(elt).spinner( "value" );
-                    if (current_val < msg.value) {
-                        $(elt).spinner( "value", msg.value );
+                    $(elt).spinner({ max: msg.value[1] });
+
+                    // set min limit
+                    if (current_val < msg.value[0]) {
+                        $(elt).spinner( "value", msg.value[0] );
                     }
-                    $(elt).spinner({ min: msg.value });
+                    $(elt).spinner({ min: msg.value[0] });
+
+                    // set increment value
+                    $(elt).spinner( "option", "step", msg.value[2] );
             });
-            // Get value while incrementing/decrementing spinner
+            // Sends value when spinner value changes to client side
             $('#%(id)s').on( "spin", function( event, ui ) {
                 ginga_app.widget_handler('activate', '%(id)s', ui.value);
+            });
+            $('#%(id)s').on( "spinchange", function( event, ui ) {
+                ginga_app.widget_handler('activate', '%(id)s', document.getElementById('%(id)s').value);
             });
         });
     </script>
@@ -728,7 +732,7 @@ class SpinBox(WidgetBase):
 
     def get_value(self):
         return self.dtype(self.value)
-            
+
     def set_value(self, val):
         self.changed = True
         self.value = self.dtype(val)
@@ -743,10 +747,10 @@ class SpinBox(WidgetBase):
         self.minval = self.dtype(minval)
         self.maxval = self.dtype(maxval)
         self.incr = self.dtype(incr_value)
+        limits = [self.minval, self.maxval, self.incr]
         if self._rendered:
             app = self.get_app()
-            app.do_operation('set_max', id=self.id, value=self.maxval)
-            app.do_operation('set_min', id=self.id, value=self.minval)
+            app.do_operation('set_limits', id=self.id, value=limits)
 
     def render(self):
         d = dict(id=self.id, value=str(self.dtype(self.value)),
@@ -774,12 +778,12 @@ class Slider(WidgetBase):
     <div id="%(id)s" tracking="%(tracking)s" class="%(classes)s" style="%(styles)s"></div>
     <script type="text/javascript">
         $(document).ready(function(){
-            $('#%(id)s').slider({ max: %(max)s, min: %(min)s, step: %(incr)s, 
-                                    orientation: "%(orient)s", disabled: %(disabled)s,
-                                    value: %(value)s,
-                                    change: function (event, ui) {
-                                        ginga_app.widget_handler('activate', '%(id)s', ui.value);
-                                    }
+            $('#%(id)s').slider({ max: %(max)s, min: %(min)s, step: %(incr)s,
+                                 orientation: "%(orient)s", disabled: %(disabled)s,
+                                 value: %(value)s,
+                                 change: function (event, ui) {
+                                    ginga_app.widget_handler('activate', '%(id)s', ui.value);
+                                 }
             });
             // see python method set_value in this widget
             ginga_app.add_widget_custom_method('%(id)s', 'set_slideval',
@@ -787,25 +791,27 @@ class Slider(WidgetBase):
                     $(elt).slider( "option", "value", msg.value );
             });
             // see python method set_limits in this widget
-            ginga_app.add_widget_custom_method('%(id)s', 'set_slidemin',
+            ginga_app.add_widget_custom_method('%(id)s', 'set_limits',
                 function (elt, msg) {
-                    $(elt).slider( "option", "min", msg.value );
+                    $(elt).slider( "option", "min", msg.value[0] );
+                    $(elt).slider( "option", "max", msg.value[1] );
+                    $(elt).slider( "option", "step", msg.value[2] );
             });
             ginga_app.add_widget_custom_method('%(id)s', 'set_slidemax',
                 function (elt, msg) {
                     $(elt).slider( "option", "max", msg.value );
             });
-            // Set tracking ?? NOT WORKING YET
+            // Set tracking (NOT WORKING YET)
             ginga_app.add_widget_custom_method('%(id)s', 'toggle_track',
                 function (elt, msg) {
                     document.getElementById('%(id)s').setAttribute('tracking', msg.value);
-            }); 
+            });
             // Deal with tracking
             if (document.getElementById('%(id)s').getAttribute('tracking') == 'true') {
                 $('#%(id)s').on( "slide", function( event, ui ) {
                     ginga_app.widget_handler('activate', '%(id)s', ui.value);
                 });
-            } 
+            }
             else {
                 $('#%(id)s').on( "slide", function( event, ui ) {
                     console.log("Do nothing");
@@ -848,6 +854,7 @@ class Slider(WidgetBase):
 
     def set_tracking(self, tf):
         self.track = tf
+        # TODO: Toggle tracking on/off dynamically
         if self._rendered:
             app = self.get_app()
             app.do_operation('toggle_track', id=self.id, value=self.track)
@@ -856,10 +863,10 @@ class Slider(WidgetBase):
         self.minval = self.dtype(minval)
         self.maxval = self.dtype(maxval)
         self.incr = incr_value
+        limits = [self.minval, self.maxval, self.incr]
         if self._rendered:
             app = self.get_app()
-            app.do_operation('set_slidemin', id=self.id, value=self.minval)
-            app.do_operation('set_slidemax', id=self.id, value=self.maxval)
+            app.do_operation('set_limits', id=self.id, value=limits)
 
     def render(self):
         d = dict(id=self.id, value=str(self.dtype(self.value)),
@@ -898,7 +905,7 @@ class Dial(WidgetBase):
                                    snapToStep: true,
                 rotation: 'clockwise',
                 style: { stroke: '#dfe3e9', strokeWidth: 3, fill: { color: '#fefefe', gradientType: "linear", gradientStops: [[0, 1], [50, 0.9], [100, 1]] } }
-            });                               
+            });
             $('#%(id)s').on('valueChanged', function (event) {
                 ginga_app.widget_handler('activate', '%(id)s',
                                          parseInt(event.currentValue));
@@ -1033,11 +1040,11 @@ class CheckBox(WidgetBase):
     </span>
     <script type="text/javascript">
         $(document).ready(function () {
-            // Update states dynamically after intial render
+            // see python method set_state in this widget
             ginga_app.add_widget_custom_method('%(id)s', 'update_state',
                 function (elt, msg) {
-                    if(msg.value) {
-                    }
+                    msg.value ? document.getElementById('%(id)s').checked = true :
+                                document.getElementById('%(id)s').checked = false;
             });
         });
     </script>
@@ -1081,19 +1088,25 @@ class CheckBox(WidgetBase):
 class ToggleButton(WidgetBase):
 
     html_template = '''
-    <div class="%(classes)s" >
-        <div style="float: left">
-            <label class="switch" style="%(styles)s">
-                <input id=%(id)s type="checkbox" %(disabled)s class="checkbox"
-                    onchange="ginga_app.widget_handler('activate', '%(id)s',
-                    document.getElementById('%(id)s').checked)" value="%(text)s">
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div style="float: left">
-            <label for="%(id)s" >%(text)s</label>
-        </div>
+    <div>
+        <label class="%(class1)s" style="%(styles)s">
+            <input id=%(id)s type="checkbox" %(disabled)s value="%(text)s" %(checked)s
+                 onchange="ginga_app.widget_handler('activate', '%(id)s',
+                 document.getElementById('%(id)s').checked)">
+            <span class="%(class2)s"></span>
+        </label>
+        <label for="%(id)s" style="%(styles)s">%(text)s</label>
     </div>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            // see python method set_state in this widget
+            ginga_app.add_widget_custom_method('%(id)s', 'update_state',
+                function (elt, msg) {
+                    msg.value ? document.getElementById('%(id)s').checked = true :
+                                document.getElementById('%(id)s').checked = false;
+            });
+        });
+    </script>
     '''
 
     def __init__(self, text=''):
@@ -1106,7 +1119,8 @@ class ToggleButton(WidgetBase):
         self.value = False
         self.text = text
         self.enable_callback('activated')
-        # self.add_css_classes(['slider round', 'switch', 'checkbox'])
+        self.add_css_classes(['switch', 'slider round'])
+        self.add_css_styles([('float', 'left')])
 
     def _cb_redirect(self, event):
         self.value = event.value
@@ -1114,16 +1128,23 @@ class ToggleButton(WidgetBase):
 
     def set_state(self, tf):
         self.value = tf
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation('update_state', id=self.id, value=self.value)
 
     def get_state(self):
         return self.value
 
     def render(self):
-        d = dict(id=self.id, text=self.text, disabled='',
-                 classes=self.get_css_classes(fmt='str'),
+        css_classes = self.get_css_classes(fmt='str').split(' ', 1)
+        d = dict(id=self.id, text=self.text, disabled='', checked='',
+                 class1=[k for k in css_classes if 'switch' in k][0],
+                 class2=[k for k in css_classes if 'slider round' in k][0],
                  styles=self.get_css_styles(fmt='str'))
         if not self.enabled:
             d['disabled'] = 'disabled'
+        if self.value:
+            d['checked'] = 'checked'
 
         self._rendered = True
         return self.html_template % d  # noqa
@@ -1782,7 +1803,7 @@ class Box(ContainerBase):
     <script> type="text/javascript">
         $(document).ready(function () {
             // see python method insert_widget() in this widget
-            ginga_app.add_widget_custom_method('%(id)s', 'insert_child', 
+            ginga_app.add_widget_custom_method('%(id)s', 'insert_child',
                 function (elt, msg) {
                     let child = elt.children[msg.index];
                     let numChildren = elt.children.length;
@@ -1814,9 +1835,6 @@ class Box(ContainerBase):
     def insert_widget(self, idx, child, stretch=0.0):
         self.add_ref(child)
         flex = int(round(stretch))
-        # Consider whether we need to add the following:
-        #   -webkit-flex-grow, -ms-flex-grow, -moz-flex-grow
-        # and their "shrink" conterparts
         child.add_css_styles([('flex-grow', flex), ('flex-shrink', 1)])
 
         if self._rendered:
@@ -1876,15 +1894,15 @@ class Frame(ContainerBase):
     <script type="text/javascript">
         $(document).ready(function () {
             // see python method set_widget() in this widget
-            ginga_app.add_widget_custom_method('%(id)s', 'update_widget', 
+            ginga_app.add_widget_custom_method('%(id)s', 'update_widget',
                 function (elt, msg) {
-                    $(".%(child2)s").replaceWith(msg.value);
-                    $(".%(child1)s").next().addClass("%(child2)s");
+                    $(".%(child2)s").empty();
+                    $(".%(child2)s").append(msg.value);
             });
             // see python method set_text() in this widget
-            ginga_app.add_widget_custom_method('%(id)s', 'update_frametext', 
+            ginga_app.add_widget_custom_method('%(id)s', 'update_frametext',
                 function (elt, msg) {
-                    document.querySelector(".%(child1)s").innerHTML = msg.value; 
+                    elt.querySelector(".%(child1)s").innerHTML = msg.value;
             });
         });
     </script>
@@ -1926,6 +1944,7 @@ class Frame(ContainerBase):
             app = self.get_app()
             app.do_operation('update_frametext', id=self.id, value=self.label)
 
+
 class Expander(ContainerBase):
 
     html_template = """
@@ -1940,7 +1959,7 @@ class Expander(ContainerBase):
              $("#%(id)s").jqxExpander({ width: '%(width)s',
                                         expanded: false });
              // see python method set_widget() in this widget
-             ginga_app.add_widget_custom_method('%(id)s', 'update_expander', 
+             ginga_app.add_widget_custom_method('%(id)s', 'update_expander',
                 function (elt, msg) {
                     $(elt).jqxExpander('setContent', msg.value);
              });
@@ -2094,30 +2113,73 @@ class TabWidget(ContainerBase):
         return self.html_template % d
 
 
-class StackWidget(TabWidget):
+class StackWidget(ContainerBase):
 
     html_template = """
-    <div id='%(id)s class="%(classes)s style="%(style)s>
+    <div id='%(id)s' class="%(classes)s" style="%(styles)s">
         %(content)s
     </div>
     """
+
     def __init__(self):
-        super(StackWidget, self).__init__(tabpos='top', reorderable=False,
-                                          detachable=False, group=-1)
-        self._tabs_visible = False
+        super(StackWidget, self).__init__()
+        self.add_css_classes(['stackbox'])
+        self.index = 0
 
-    def add_widget(self):
-        pass
+    def add_widget(self, child, title=""):
+        children = self.get_children()
+        child.add_css_styles([('grid-column-start', '1'), ('grid-row-start', '1')])
+        # if there are no children, set first added widget to be visible
+        if len(children) == 0:
+            self.index = 0
+            self.add_ref(child)
+            child.add_css_styles([('visibility', 'visible')])
+        # hide all other children
+        else:
+            self.add_ref(child)
+            child.add_css_styles([('visibility', 'hidden')])
 
-    def set_visible():
-        pass
-    
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation("append_child", id=self.id, value=child.render())
+        self.make_callback('widget-added', child)
+
+    def get_index(self):
+        return self.index
+
+    def set_index(self, idx):
+        child = self.get_children()
+        child[idx].add_css_styles([('visibility', 'hidden')])
+
+        if self._rendered:
+            new_visible = child[idx]
+            old_visible = child[self.index]
+            old_visible.add_css_styles([('visibility', 'hidden')])
+            new_visible.add_css_styles([('visibility', 'visible')])
+            style1 = new_visible.get_css_styles(fmt='str')
+            style2 = old_visible.get_css_styles(fmt='str')
+
+            app = self.get_app()
+            app.do_operation("update_style", id=new_visible.id, value=style1)
+            app.do_operation("update_style", id=old_visible.id, value=style2)
+
+        self.index = idx
+
+    def index_of(self, child):
+        try:
+            return self.children.index(child)
+        except ValueError:
+            return -1
+
+    def index_to_widget(self, idx):
+        return self.children[idx]
+
     def render(self):
+        children = self.get_children()
         d = dict(id=self.id,
                  classes=self.get_css_classes(fmt='str'),
                  styles=self.get_css_styles(fmt='str'))
-
-
+        d['content'] = self.render_children(spacing_side='bottom')
         self._rendered = True
         return self.html_template % d
 
@@ -2182,7 +2244,7 @@ class ScrollArea(ContainerBase):
             function pct_to_position(position_total, pct) {
                 return pct / 100 * position_total;
             }
-        }); 
+        });
     </script>
     """
 
@@ -2209,9 +2271,9 @@ class ScrollArea(ContainerBase):
         if self._rendered:
             app = self.get_app()
             if vertical:
-                 app.do_operation('scroll_vert', id=self.id, value=percent)
+                app.do_operation('scroll_vert', id=self.id, value=percent)
             if horizontal:
-                 app.do_operation('scroll_hori', id=self.id, value=percent)
+                app.do_operation('scroll_hori', id=self.id, value=percent)
 
     def render(self):
         children = self.get_children()
@@ -2330,7 +2392,22 @@ class GridBox(ContainerBase):
         // see python method insert_row in this widget
         ginga_app.add_widget_custom_method('%(id)s', 'insert_row',
                 function (elt, msg) {
-                    document.getElementById("%(id)s").insertRow(msg.value);
+                    let index = msg.value[0];
+                    let numColumns = msg.value[1];
+                    let newRow = document.getElementById("%(id)s").insertRow(index);
+                    for (let i = 0; i < numColumns; i++) {
+                        newRow.insertCell(i);
+                    }
+        });
+        // see python method append_row in this widget
+        ginga_app.add_widget_custom_method('%(id)s', 'append_row',
+                function (elt, msg) {
+                    let numRows = msg.value[0];
+                    let numColumns = msg.value[1];
+                    let newRow = document.getElementById("%(id)s").insertRow(numRows);
+                    for (let i = 0; i < numColumns; i++) {
+                        newRow.insertCell(i);
+                    }
         });
         // see python method delete_row in this widget
         ginga_app.add_widget_custom_method('%(id)s', 'delete_row',
@@ -2395,13 +2472,55 @@ class GridBox(ContainerBase):
             app.do_operation("insert_cell", id=self.id, value=indices)
 
     def insert_row(self, index):
-        self.num_rows +=1
+        indices = [index, self.num_cols]
+        self.num_rows += 1
+
+        # handle case where user inserts row at the end of the gridbox
+        if index == self.num_rows - 1:
+            for j in range(self.num_cols):
+                self.tbl[(index, j)] = Box()
+        else:
+            # shift key/value pairs down to make the row empty at index
+            for i in range(self.num_rows - 2, index - 1, -1):
+                for j in range(self.num_cols):
+                    self.tbl[(i + 1, j)] = self.tbl[(i, j)]
+            # populate inserted row with empty Boxes for render_body()
+            for j in range(self.num_cols):
+                self.tbl[(index, j)] = Box()
+
         if self._rendered:
             app = self.get_app()
-            app.do_operation("insert_row", id=self.id, value=index)
+            app.do_operation("insert_row", id=self.id, value=indices)
+
+    def append_row(self):
+        indices = [self.num_rows, self.num_cols]
+        if self._rendered:
+            app = self.get_app()
+            app.do_operation("append_row", id=self.id, value=indices)
+        self.num_rows += 1
+        # populate appended row with empty Boxes for render_body()
+        for j in range(self.num_cols):
+            self.tbl[(self.num_rows - 1, j)] = Box()
 
     def delete_row(self, index):
-        self.num_rows -=1
+
+        if index < 0 or index >= self.num_rows:
+            print("Index out of bounds")
+            return
+
+        if index == self.num_rows - 1:
+            for j in range(self.num_cols):
+                self.tbl.pop((self.num_rows - 1, j))
+        else:
+            # shift dict key, value pairs up
+            for i in range(index + 1, self.num_rows):
+                for j in range(self.num_cols):
+                    self.tbl[(i - 1, j)] = self.tbl[(i, j)]
+            # delete items in last row to maintain self.tbl
+            for j in range(self.num_cols):
+                self.tbl.pop((self.num_rows - 1, j))
+
+        self.num_rows -= 1
         if self._rendered:
             app = self.get_app()
             app.do_operation("delete_row", id=self.id, value=index)
