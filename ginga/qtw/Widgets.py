@@ -1266,7 +1266,10 @@ class TabWidget(ContainerBase):
         self.reorderable = reorderable
         self.detachable = detachable
 
-        w = QtGui.QTabWidget()
+        if self.detachable:
+            w = QtHelp.DetachableTabWidget()
+        else:
+            w = QtGui.QTabWidget()
         w.currentChanged.connect(self._cb_redirect)
         w.tabCloseRequested.connect(self._tab_close)
         w.setUsesScrollButtons(True)
