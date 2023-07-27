@@ -121,9 +121,11 @@ jobs:
     - name: Install and build
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
+        $CONDA/bin/conda create -n testenv python=3.11
+        $CONDA/bin/conda activate testenv
         $CONDA/bin/conda install pip setuptools setuptools_scm
         $CONDA/bin/conda install qtpy pyqt matplotlib
         $CONDA/bin/conda install attrs "astropy>=5.2" pytest-astropy -c conda-forge
-        $CONDA/bin/pip install -e .
+        $CONDA/envs/testenv/bin/pip install -e .
     - name: Run tests
-      run: $CONDA/bin/pytest --pyargs ginga doc -sv
+      run: $CONDA/envs/testenv/bin/pytest --pyargs ginga doc -sv
