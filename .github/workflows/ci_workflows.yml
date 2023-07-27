@@ -121,6 +121,7 @@ jobs:
     - name: Install and build
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
+        $CONDA/bin/conda init bash
         $CONDA/bin/conda create -n testenv python=3.11
         $CONDA/bin/conda activate testenv
         $CONDA/bin/conda install pip setuptools setuptools_scm
